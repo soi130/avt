@@ -1,12 +1,20 @@
 import finnhub
-from get_api_key import *
-import pandas as pd 
 from datetime import datetime
+import json
 import boto3
+
 #%% vars
-finhub_api = get_api_key_finhub()
-symbol_s3 = get_symbol_bucket()
-symbol_bronze_name = symbol_s3['bronze'][1]['name']
+print('START')
+
+ssm_client = boto3.client('ssm')
+finhub_api_response = ssm_client.get_parameter(
+    Name='finnhub_api',
+    WithDecryption=True
+    )
+    
+finhub_api = finhub_api_response['Parameter']['Value']
+
+symbol_bronze_name = "avt-symbol-bronze"
  
 td  = datetime.today()
 y = td.year
@@ -20,15 +28,18 @@ def lambda_handler(event,context):
     s3 = boto3.client('s3')
 
     finnhub_client = finnhub.Client(api_key=finhub_api)
-    symbol_json = pd.DataFrame(finnhub_client.stock_symbols('US')).to_json()
+    symbol_json = finnhub_client.stock_symbols('US')
+    
     name = symbol_bronze_name
     filename = td_string+'symbol.json'
     to_s3 = bytes(json.dumps(symbol_json),
                   encoding='UTF-8')
 
-    s3.put_object(bucket=symbol_bronze_name,
-                  key = filename,
-                  body = to_s3
+    s3.put_object(Bucket=symbol_bronze_name,
+                  Key = filename,
+                  Body = to_s3
                   )
-    
-    print('Symbol JSON Put to S3 Complete')
+    return {"statusCode":200,
+            "log":'Symbol JSON Put to S3 Complete'
+        
+    }
