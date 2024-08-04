@@ -1,5 +1,6 @@
 avt.txt
 finhub.txt
+symbol.parquet
 s3_info.json
 get_api_key.py
 test.py
